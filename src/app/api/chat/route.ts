@@ -1,13 +1,28 @@
-import { streamText } from 'ai';
-import { groq } from '@/lib/groq';
+import { createOpenAI } from '@ai-sdk/openai';
 import { retrieveRelevantDocuments, buildRAGContext } from '@/lib/rag';
-import { SYSTEM_PROMPT } from '@/utils/constants';
+import { saveChatHistory } from '@/lib/postgres';
 
 export const runtime = 'nodejs';
+const maxDuration = 60;
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+}
+
+/**
+ * System prompt untuk blog assistant
+ */
+function getSystemPrompt(): string {
+  return process.env.NEXT_PUBLIC_SYSTEM_PROMPT || `Kamu adalah AI Assistant Sontoloyo untuk blog pribadi Adi Muhamad.
+Jawabanmu harus santai, hangat, dan mudah dimengerti, seperti ngobrol dengan teman sendiri.
+Gunakan Bahasa Indonesia yang ramah dan sopan.
+Ambil informasi dari konteks blog yang tersedia dan berikan jawaban yang relevan.
+Kalau nggak tahu, bilang jujur saja bahwa kamu tidak punya informasi tersebut.`;
 }
 
 export async function POST(req: Request) {
@@ -26,35 +41,112 @@ export async function POST(req: Request) {
 
     const userQuery = lastUserMessage.content;
 
-    // Retrieve relevant documents from Firestore
+    // Retrieve relevant documents from PostgreSQL using vector similarity
     let ragContext = '';
+    let relevantDocs: Array<{ id: number; content: string; source: string; similarity?: number }> = [];
     try {
-      const relevantDocs = await retrieveRelevantDocuments(userQuery, 5);
+      relevantDocs = await retrieveRelevantDocuments(userQuery, 5);
       ragContext = buildRAGContext(relevantDocs);
     } catch (error) {
       console.warn('Failed to retrieve RAG context:', error);
       ragContext = 'Tidak ada dokumen konteks yang tersedia saat ini.';
     }
 
-    // Build the prompt with RAG context
-    const systemPromptWithContext = `${SYSTEM_PROMPT}
+    // Build the system prompt with RAG context
+    const systemPromptWithContext = `${getSystemPrompt()}
 
-KONTEKS DOKUMEN YANG RELEVAN:
-${ragContext}`;
+---KONTEKS DARI BLOG---
+${ragContext}
+---AKHIR KONTEKS---`;
 
-    // Use streamText with Groq (Llama 3)
-    const result = await streamText({
-      model: groq('llama-3.3-70b-versatile'),
-      system: systemPromptWithContext,
-      messages: messages.map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
-      temperature: 0.7,
+    // Prepare messages for OpenAI
+    type OpenAIChatMessage =
+      | { role: 'system'; content: string }
+      | { role: 'user'; content: [{ type: 'text'; text: string }] }
+      | { role: 'assistant'; content: [{ type: 'text'; text: string }] };
+
+    const openaiPrompt: OpenAIChatMessage[] = [
+      {
+        role: 'system',
+        content: systemPromptWithContext,
+      },
+      ...messages.map((msg) => {
+        if (msg.role === 'assistant') {
+          return {
+            role: 'assistant' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: msg.content,
+              },
+            ],
+          } as OpenAIChatMessage;
+        }
+
+        return {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'text' as const,
+              text: msg.content,
+            },
+          ],
+        } as OpenAIChatMessage;
+      }),
+    ];
+
+    // Stream response from OpenAI using GPT-4o mini (cheapest & fast)
+    const model = process.env.NEXT_PUBLIC_OPENAI_MODEL || 'gpt-4o-mini';
+    const streamResponse = await openai.chat(model).doStream({
+      prompt: openaiPrompt,
+      temperature: parseFloat(process.env.NEXT_PUBLIC_TEMPERATURE || '0.7'),
+      maxOutputTokens: parseInt(process.env.NEXT_PUBLIC_MAX_TOKENS || '1000'),
     });
 
-    // Return the stream as response
-    return result.toTextStreamResponse();
+    const reader = streamResponse.stream.getReader();
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        let fullResponse = '';
+        let tokenCount = 0;
+
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+
+            if (value.type === 'text-delta' && typeof value.delta === 'string') {
+              const chunkValue = value.delta;
+              fullResponse += chunkValue;
+              tokenCount += 1;
+              controller.enqueue(new TextEncoder().encode(chunkValue));
+            }
+          }
+
+          try {
+            await saveChatHistory(userQuery, fullResponse, {
+              message: Math.ceil(userQuery.length / 4),
+              completion: tokenCount,
+            });
+          } catch (historyError) {
+            console.warn('Failed to save chat history:', historyError);
+          }
+
+          controller.close();
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response(

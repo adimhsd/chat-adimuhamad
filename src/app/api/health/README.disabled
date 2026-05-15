@@ -1,3 +1,0 @@
-This folder was disabled for static export. The original health API route was moved to `route.ts.disabled`.
-
-For static export, use a static file `public/health.json` instead.

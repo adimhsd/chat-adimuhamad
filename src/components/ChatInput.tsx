@@ -20,7 +20,7 @@ export default function ChatInput({
 
     const message = input.trim();
     setInput('');
-    
+
     // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -30,11 +30,8 @@ export default function ChatInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Send on Enter, unless Shift+Enter is pressed (for new line)
-    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
-      e.preventDefault();
-      handleSend();
-    }
+    // Tombol Enter sekarang hanya berfungsi untuk baris baru
+    // Fitur kirim via Enter telah dimatikan sesuai permintaan user
   };
 
   useEffect(() => {
@@ -47,6 +44,16 @@ export default function ChatInput({
     }
   }, [input]);
 
+  // Focus textarea when AI finishes responding (isLoading becomes false)
+  useEffect(() => {
+    if (!isLoading && textareaRef.current) {
+      // Small timeout to ensure it runs after UI is un-disabled
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+    }
+  }, [isLoading]);
+
   return (
     <div className="border-t border-gray-200 dark:border-slate-800 pt-4">
       <div className="relative flex items-end gap-3">
@@ -57,7 +64,7 @@ export default function ChatInput({
           onKeyDown={handleKeyDown}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
-          placeholder="Tanyakan sesuatu tentang Prodi Bisnis Digital..."
+          placeholder="Tanya apa aja, asal jangan tanya kapan kiamat"
           disabled={isLoading}
           rows={1}
           className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 resize-none max-h-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -74,8 +81,16 @@ export default function ChatInput({
           )}
         </button>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-        Powered by Google Gemini & Firestore Knowledge Base
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-6 text-center">
+        © 2026 Hak Cipta Dilindungi. Developed by{' '}
+        <a
+          href="https://adi-muhamad.my.id"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
+        >
+          adi-muhamad.my.id
+        </a>
       </p>
     </div>
   );

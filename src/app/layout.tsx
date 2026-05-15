@@ -2,19 +2,24 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'BisDig Buddy - AI Assistant UNIKU',
+  title: 'AI Assistant Sontoloyo',
   description:
-    'AI Assistant untuk Prodi Bisnis Digital UNIKU - Tanya jawab seputar pendaftaran, kurikulum, dan SOP akademik',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+    'AI Assistant Sontoloyo untuk blog chat.adi-muhamad.my.id',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'BisDig Buddy',
+    title: 'AI Assistant Sontoloyo',
   },
   icons: {
     icon: '/favicon.ico',
     apple: '/favicon.ico',
   },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

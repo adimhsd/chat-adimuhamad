@@ -1,6 +1,0 @@
-// Disabled: original `src/app/api/chat/route.ts`
-// The dynamic chat API uses server-side code (Gemini, Firestore, streaming).
-// For static export, implement the chat API as a separate server (Vercel serverless
-// or Firebase Function) and point the frontend to that endpoint.
-
-export {};

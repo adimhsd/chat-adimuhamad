@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+"use client";
+import { useEffect, useState } from 'react';
 import ChatWindow from '@/components/ChatWindow';
 import ChatInput from '@/components/ChatInput';
 import Navbar from '@/components/Navbar';
@@ -13,6 +14,27 @@ interface Message {
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const storedTheme = typeof window !== 'undefined' ? window.localStorage.getItem('theme') : null;
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+      setTheme(storedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    }
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('theme', theme);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleSendMessage = async (userMessage: string) => {
     // 1. Add User Message
@@ -85,7 +107,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-50 dark:bg-slate-900">
-      <Navbar />
+      <Navbar theme={theme} onToggleTheme={toggleTheme} />
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 flex flex-col overflow-hidden">
         <ChatWindow messages={messages} />
         <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />

@@ -1,4 +1,0 @@
-This folder was disabled for static export. The original dynamic chat API route was moved to `route.ts.disabled`.
-
-To re-enable dynamic chat functionality, host the API as a separate server (Vercel serverless or Firebase Function)
-and update the frontend to call that endpoint.
