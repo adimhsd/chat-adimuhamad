@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AI Assistant Sontoloyo',
+  title: 'Sontoloyo AI',
   description:
-    'AI Assistant Sontoloyo untuk blog chat.adi-muhamad.my.id',
+    'Sontoloyo AI untuk blog chat.adi-muhamad.my.id',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'AI Assistant Sontoloyo',
+    title: 'Sontoloyo AI',
   },
   icons: {
     icon: '/favicon.ico',
