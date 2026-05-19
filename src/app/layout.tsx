@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.ico',
-    apple: '/favicon.ico',
+    apple: '/icons/icon-180x180.png',
   },
 };
 
@@ -31,8 +31,17 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="theme-color" content="#0f172a" />
+        <meta name="theme-color" content="#2563eb" />
         <meta name="description" content={metadata.description as string} />
+        {/* PWA Meta Tags */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Sontoloyo AI" />
+        <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
+        <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png" />
         <link
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
           rel="stylesheet"
