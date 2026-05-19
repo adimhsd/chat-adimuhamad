@@ -106,9 +106,12 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full bg-gray-50 dark:bg-slate-900 pt-16">
+    <div className="flex flex-col w-full bg-gray-50 dark:bg-slate-900" style={{ height: '100dvh' }}>
       <Navbar theme={theme} onToggleTheme={toggleTheme} />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 flex flex-col overflow-hidden">
+      <main
+        className="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col"
+        style={{ paddingTop: '4.5rem', overflow: 'hidden' }}
+      >
         <ChatWindow messages={messages} />
         <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
       </main>

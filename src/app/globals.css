@@ -4,6 +4,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --navbar-height: 4rem; /* 64px = h-16 */
 }
 
 .dark {
@@ -25,8 +26,29 @@
   }
 }
 
+html, body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden; /* prevent body scroll, let inner elements scroll */
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* iOS safe area support */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Ensure fixed nav always on top */
+nav[class*="fixed"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  /* iOS momentum scroll fix */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
