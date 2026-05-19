@@ -7,7 +7,7 @@ interface NavbarProps {
 
 export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
   return (
-    <nav className="border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10">
+    <nav className="fixed w-full top-0 left-0 z-50 border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
       <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-2 rounded-lg text-white shadow-md">
@@ -15,7 +15,7 @@ export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
           </div>
           <div>
             <h1 className="font-bold text-lg leading-none text-gray-900 dark:text-white">
-              AI Assistant Sontoloyo
+              Sontoloyo AI
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               chat.adi-muhamad.my.id

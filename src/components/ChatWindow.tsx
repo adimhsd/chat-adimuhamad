@@ -31,7 +31,7 @@ export default function ChatWindow({ messages }: { messages: Message[] }) {
             </div>
             <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Selamat datang!</h2>
             <p className="text-gray-600 dark:text-gray-400 max-w-sm">
-              Halloo.. Saya adalah AI Assistant Sontoloyo<br>
+              Halloo.. Saya adalah Sontoloyo AI<br>
               </br>
               Anda bisa bertanya tentang apapun terkait informasi yang ada di dalam konten blog saya!
             </p>

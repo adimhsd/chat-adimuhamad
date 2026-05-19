@@ -81,17 +81,21 @@ export default function ChatInput({
           )}
         </button>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-6 text-center">
-        © 2026 Hak Cipta Dilindungi. Developed by{' '}
-        <a
-          href="https://adi-muhamad.my.id"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
-        >
-          adi-muhamad.my.id
-        </a>
-      </p>
+      <div className="text-xs text-gray-500 dark:text-gray-400 mt-6 text-center space-y-1">
+        <p>“SontoloyoAI is just an AI, so it can make mistakes.”</p>
+        <p>© 2026 Hak Cipta Dilindungi.</p>
+        <p>
+          Developed by{' '}
+          <a
+            href="https://adi-muhamad.my.id"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
+          >
+            adi-muhamad.my.id
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

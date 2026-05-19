@@ -106,7 +106,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-gray-50 dark:bg-slate-900">
+    <div className="flex flex-col h-[100dvh] w-full bg-gray-50 dark:bg-slate-900 pt-16">
       <Navbar theme={theme} onToggleTheme={toggleTheme} />
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 flex flex-col overflow-hidden">
         <ChatWindow messages={messages} />
