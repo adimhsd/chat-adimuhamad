@@ -96,6 +96,9 @@ export default function Home() {
               : msg
           )
         );
+
+        // Add small artificial delay to make typing effect smoother and slower
+        await new Promise((resolve) => setTimeout(resolve, 30));
       }
     } catch (error) {
       console.error('Streaming error:', error);

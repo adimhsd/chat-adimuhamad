@@ -26,6 +26,11 @@ export default function ChatInput({
       textareaRef.current.style.height = 'auto';
     }
 
+    // Blur textarea to hide mobile keyboard
+    if (textareaRef.current) {
+      textareaRef.current.blur();
+    }
+
     await onSendMessage(message);
   };
 
@@ -44,15 +49,7 @@ export default function ChatInput({
     }
   }, [input]);
 
-  // Focus textarea when AI finishes responding (isLoading becomes false)
-  useEffect(() => {
-    if (!isLoading && textareaRef.current) {
-      // Small timeout to ensure it runs after UI is un-disabled
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 0);
-    }
-  }, [isLoading]);
+
 
   return (
     <div className="border-t border-gray-200 dark:border-slate-800 pt-4">
@@ -67,7 +64,7 @@ export default function ChatInput({
           placeholder="Tanya apa aja, asal jangan tanya kapan kiamat"
           disabled={isLoading}
           rows={1}
-          className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 resize-none max-h-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 p-3 text-sm md:text-base rounded-lg border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 resize-none max-h-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           onClick={handleSend}
