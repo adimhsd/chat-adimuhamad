@@ -28,15 +28,16 @@ services:
       dockerfile: Dockerfile
       network: host
     container_name: chatbot_app
+    network_mode: "host"
     env_file:
       - .env.local
     environment:
       PORT: 3001   # run on port 3001 to avoid conflict with CDL app on 3000
 
-      # PostgreSQL - gunakan nama container sebagai hostname (dalam docker network)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-123}@chatbot_postgres:5432/${POSTGRES_DB:-chatbot_db}
-      POSTGRES_HOST: chatbot_postgres
-      POSTGRES_PORT: 5432
+      # PostgreSQL - Karena pakai network host, akses DB lewat localhost port 5433 yang di-expose DB
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-123}@localhost:5433/${POSTGRES_DB:-chatbot_db}
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5433
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123}
       POSTGRES_DB: ${POSTGRES_DB:-chatbot_db}
@@ -45,13 +46,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       NEXT_PUBLIC_APP_NAME: "Sontoloyo AI"
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://chat.adi-muhamad.my.id}
-    ports:
-      - "3001:3001"  # expose port 3001 ke host
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - chatbot-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
