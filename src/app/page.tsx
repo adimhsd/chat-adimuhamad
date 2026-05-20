@@ -85,20 +85,21 @@ export default function Home() {
         done = doneReading;
         const chunkValue = decoder.decode(value || new Uint8Array(), { stream: !done });
 
-        // Vercel AI SDK streamText usually sends raw text chunks or protocol text.
-        // If it's pure text stream (which streamText default often is with .toTextStreamResponse()):
-        accumulatedContent += chunkValue;
+        // Tampilkan teks per karakter agar efek mengetik lebih halus dan lambat
+        for (let i = 0; i < chunkValue.length; i++) {
+          accumulatedContent += chunkValue[i];
+          
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId
+                ? { ...msg, content: accumulatedContent }
+                : msg
+            )
+          );
 
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMsgId
-              ? { ...msg, content: accumulatedContent }
-              : msg
-          )
-        );
-
-        // Add small artificial delay to make typing effect smoother and slower
-        await new Promise((resolve) => setTimeout(resolve, 30));
+          // Jeda waktu per karakter (20ms) agar terasa natural seperti diketik manual
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
       }
     } catch (error) {
       console.error('Streaming error:', error);
