@@ -24,22 +24,22 @@ export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
-            <button
+          <button
             type="button"
             onClick={onToggleTheme}
-            className="px-3 py-1.5 text-xs rounded-md border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300"
+            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 flex items-center justify-center"
             title="Toggle theme"
             aria-label="Toggle theme"
           >
-            <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} mr-1`} />
-            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} sm:mr-1.5`} />
+            <span className="hidden sm:inline text-xs font-medium">{theme === 'dark' ? 'Light' : 'Dark'}</span>
           </button>
           <button
-            className="px-3 py-1.5 text-xs rounded-md border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300"
+            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 flex items-center justify-center"
             title="API Status"
           >
-            <i className="fas fa-circle text-green-500 mr-1"></i>
-            <span>Live</span>
+            <i className="fas fa-circle text-green-500 sm:mr-1.5" style={{ fontSize: '0.65rem' }}></i>
+            <span className="hidden sm:inline text-xs font-medium">Live</span>
           </button>
         </div>
       </div>
