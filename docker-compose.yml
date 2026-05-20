@@ -59,8 +59,7 @@ services:
 
 volumes:
   postgres_data:
-    external: true
-    name: blog-assistant-test_postgres_data
+    driver: local
 
 networks:
   chatbot-network:
