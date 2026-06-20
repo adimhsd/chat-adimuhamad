@@ -19,7 +19,7 @@ pool.on('error', (err) => {
 /**
  * Execute a query and return results
  */
-async function query<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+export async function query<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
   const start = Date.now();
   try {
     const result = await pool.query<T>(text, params);
@@ -49,10 +49,10 @@ export async function searchDocumentsByEmbedding(
       source,
       chunk_index,
       metadata,
-      (1 - (embedding <=> $1)) AS similarity
+      (1 - (embedding <=> $1::vector)) AS similarity
     FROM documents
     WHERE embedding IS NOT NULL
-    ORDER BY embedding <=> $1
+    ORDER BY embedding <=> $1::vector
     LIMIT $2;
   `;
   const result = await query<{
