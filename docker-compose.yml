@@ -5,11 +5,11 @@ services:
     container_name: chatbot_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-K9mP5vX2wQ9zL4tY6eW8aN3}
       POSTGRES_DB: ${POSTGRES_DB:-chatbot_db}
       POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=vector"
     ports:
-      - "5433:5432"   # port 5432 mungkin dipakai cdl_postgres, pakai 5433
+      - "127.0.0.1:5433:5432"   # port 5432 mungkin dipakai cdl_postgres, pakai 5433 (dibatasi ke localhost)
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -35,11 +35,11 @@ services:
       PORT: 3001   # run on port 3001 to avoid conflict with CDL app on 3000
 
       # PostgreSQL - Karena pakai network host, akses DB lewat localhost port 5433 yang di-expose DB
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-123}@localhost:5433/${POSTGRES_DB:-chatbot_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-K9mP5vX2wQ9zL4tY6eW8aN3}@localhost:5433/${POSTGRES_DB:-chatbot_db}
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5433
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-K9mP5vX2wQ9zL4tY6eW8aN3}
       POSTGRES_DB: ${POSTGRES_DB:-chatbot_db}
 
       # App Config
