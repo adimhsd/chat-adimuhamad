@@ -29,14 +29,9 @@ export default function Navbar({
             <i className="fas fa-robot text-lg"></i>
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="font-bold text-base sm:text-lg leading-none text-[var(--text-primary)] truncate">
-                Sontoloyo AI
-              </h1>
-              <span className="persona-tag text-[10px] px-2 py-0.5 font-medium shrink-0">
-                RAG AI
-              </span>
-            </div>
+            <h1 className="font-bold text-base sm:text-lg leading-none text-[var(--text-primary)] truncate">
+              Sontoloyo AI
+            </h1>
             <p className="font-mono text-xs text-[var(--text-muted)] mt-1 truncate">
               chat.adi-muhamad.my.id
             </p>
