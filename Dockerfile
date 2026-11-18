@@ -36,7 +36,7 @@ RUN rm -f package-lock.json && npm install --omit=dev && npm cache clean --force
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY ingest-postgres.js ./
-COPY Dokumentasi ./Dokumentasi
+COPY docs ./docs
 
 # Create non-root user (Debian style)
 RUN groupadd -g 1001 nodejs && \

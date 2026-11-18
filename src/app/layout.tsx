@@ -24,17 +24,43 @@ export const viewport = {
   interactiveWidget: 'resizes-content',
 };
 
+const themeInitScript = `
+(function() {
+  try {
+    var cookieMatch = document.cookie.match(/(?:^|; )adi_lp_theme=([^;]+)/);
+    var cookieTheme = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+    var saved = localStorage.getItem('adi_lp_theme') || localStorage.getItem('theme') || cookieTheme || 'dark';
+    var resolved = saved === 'light' ? 'light' : 'dark';
+    var root = document.documentElement;
+    root.setAttribute('data-theme', resolved);
+    if (resolved === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="id" className="scroll-smooth dark" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="theme-color" content="#2563eb" />
+        <meta name="theme-color" content="#E95420" />
         <meta name="description" content={metadata.description as string} />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/* Google Fonts: Ubuntu & Ubuntu Mono */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Ubuntu+Mono:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -49,7 +75,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-gray-50 text-gray-900 dark:bg-slate-900 dark:text-gray-100 transition-colors duration-300">
+      <body className="antialiased">
         {children}
       </body>
     </html>

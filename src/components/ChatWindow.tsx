@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -10,7 +10,24 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatWindow({ messages }: { messages: Message[] }) {
+interface ChatWindowProps {
+  messages: Message[];
+  isLoading?: boolean;
+  onSelectPrompt?: (prompt: string) => void;
+}
+
+const STARTER_PROMPTS = [
+  'Siapa Adi Muhamad & apa keahliannya?',
+  'Apa fokus riset & pengajaran Adi?',
+  'Ceritakan proyek teknologi & filosofi Adi',
+  'Topik apa saja yang ada di blog ini?',
+];
+
+export default function ChatWindow({
+  messages,
+  isLoading = false,
+  onSelectPrompt,
+}: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -21,96 +38,204 @@ export default function ChatWindow({ messages }: { messages: Message[] }) {
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto space-y-4 pr-4 mb-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700"
+      className="flex-1 overflow-y-auto space-y-4 pr-1 sm:pr-2 mb-3 yaru-scrollbar"
     >
       {messages.length === 0 ? (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="bg-blue-100 dark:bg-blue-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="fas fa-robot text-3xl text-blue-600 dark:text-blue-400"></i>
+        <div className="flex items-center justify-center min-h-full py-4">
+          <div className="yaru-card max-w-xl w-full overflow-hidden">
+            <div
+              className="h-1 w-full"
+              style={{
+                background: 'linear-gradient(90deg, #E95420 0%, #77216F 65%, #2C001E 100%)',
+              }}
+            />
+            <div className="p-6 sm:p-8 text-center">
+              <div
+                className="w-16 h-16 rounded-[12px] flex items-center justify-center mx-auto mb-4 text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #E95420, #77216F)',
+                  boxShadow: '0 8px 24px -6px rgba(233, 84, 32, 0.45)',
+                }}
+              >
+                <i className="fas fa-robot text-2xl"></i>
+              </div>
+
+              <div className="mb-3">
+                <span className="persona-tag text-[11px] px-3 py-0.5 font-medium">
+                  ASISTEN VIRTUAL BLOG · RAG
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">
+                Selamat datang, Boss! 👋
+              </h2>
+              <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed mb-6">
+                Saya adalah <strong className="text-[var(--text-primary)]">Sontoloyo AI</strong>.
+                Tanyakan apa saja terkait profil, riset, pengajaran, atau artikel yang ada di
+                ekosistem blog <span className="font-mono text-[#E95420]">adi-muhamad.my.id</span>.
+              </p>
+
+              {onSelectPrompt && (
+                <div className="text-left">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)] mb-2.5 text-center">
+                    Contoh Pertanyaan Cepat
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {STARTER_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => onSelectPrompt(prompt)}
+                        className="tab-btn text-left px-3.5 py-2.5 text-xs sm:text-[13px] flex items-center justify-between gap-2 cursor-pointer"
+                      >
+                        <span className="leading-snug">{prompt}</span>
+                        <i className="fas fa-arrow-right text-[11px] text-[#E95420] shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Selamat datang!</h2>
-            <p className="text-gray-600 dark:text-gray-400 max-w-sm">
-              Halloo.. Saya adalah Sontoloyo AI<br>
-              </br>
-              Anda bisa bertanya tentang apapun terkait informasi yang ada di dalam konten blog saya!
-            </p>
           </div>
         </div>
       ) : (
-        messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 animate-fadeIn ${message.role === 'user' ? 'flex-row-reverse' : ''
-              }`}
-          >
+        messages.map((message) => {
+          const isUser = message.role === 'user';
+          const isTyping = !isUser && !message.content && isLoading;
+
+          return (
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 ${message.role === 'user'
-                ? 'bg-slate-700 dark:bg-slate-600'
-                : 'bg-blue-600 dark:bg-blue-700'
-                }`}
+              key={message.id}
+              className={`flex gap-3 animate-fadeIn ${isUser ? 'flex-row-reverse' : ''}`}
             >
-              <i
-                className={`fas text-xs ${message.role === 'user' ? 'fa-user' : 'fa-robot'
-                  }`}
-              ></i>
-            </div>
-            <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl ${message.role === 'user'
-                ? 'bg-blue-600 text-white rounded-tr-none'
-                : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-200 dark:border-slate-700'
-                }`}
-            >
-              <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {message.role === 'assistant' ? (
-                  <ReactMarkdown
-                    components={{
-                      h1: ({ node, ...props }) => (
-                        <h1 className="text-xl font-bold mt-2 mb-1" {...props} />
-                      ),
-                      h2: ({ node, ...props }) => (
-                        <h2 className="text-lg font-bold mt-2 mb-1" {...props} />
-                      ),
-                      h3: ({ node, ...props }) => (
-                        <h3 className="text-base font-bold mt-1 mb-1" {...props} />
-                      ),
-                      ul: ({ node, ...props }) => (
-                        <ul className="list-disc list-inside my-0 space-y-0" {...props} />
-                      ),
-                      ol: ({ node, ...props }) => (
-                        <ol className="list-decimal list-inside my-0 space-y-0" {...props} />
-                      ),
-                      li: ({ node, ...props }) => <li className="ml-1 leading-snug [&>p]:mb-0 [&>p]:inline" {...props} />,
-                      strong: ({ node, ...props }) => (
-                        <strong className="font-bold text-gray-900 dark:text-gray-100" {...props} />
-                      ),
-                      p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-snug" {...props} />,
-                    }}
-                  >
-                    {message.content
-                      // Collapse 3+ newlines to max 2 (prevent huge gaps)
-                      .replace(/\n{3,}/g, '\n\n')
-                      // Force single newline before any list marker (Markdown, Digit, or Bullet Char) to ensure tight lists
-                      .replace(/\n+(?=[-•*] |\d+\.)/g, '\n')}
-                  </ReactMarkdown>
-                ) : (
-                  message.content
-                )}
-              </div>
-              <p
-                className={`text-xs mt-2 ${message.role === 'user'
-                  ? 'text-blue-100'
-                  : 'text-gray-500 dark:text-gray-400'
-                  }`}
+              <div
+                className="w-8 h-8 rounded-[8px] flex items-center justify-center text-white shrink-0 mt-0.5"
+                style={{
+                  background: isUser
+                    ? '#77216F'
+                    : 'linear-gradient(135deg, #E95420, #77216F)',
+                  boxShadow: isUser
+                    ? '0 2px 6px rgba(119, 33, 111, 0.35)'
+                    : '0 2px 8px rgba(233, 84, 32, 0.35)',
+                }}
               >
-                {new Date(message.timestamp).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
+                <i className={`fas text-xs ${isUser ? 'fa-user' : 'fa-robot'}`} />
+              </div>
+
+              <div
+                className={`max-w-[85%] sm:max-w-[80%] px-4 py-3 rounded-[12px] ${
+                  isUser
+                    ? 'bg-[#E95420] text-white rounded-tr-[4px] shadow-[0_6px_16px_-4px_rgba(233,84,32,0.45)]'
+                    : 'yaru-card rounded-tl-[4px] text-[var(--text-primary)]'
+                }`}
+              >
+                <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  {isUser ? (
+                    message.content
+                  ) : isTyping ? (
+                    <div className="flex items-center gap-2 py-1 text-[var(--text-muted)]">
+                      <span className="flex gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#E95420] animate-bounce [animation-delay:-0.3s]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#E95420] animate-bounce [animation-delay:-0.15s]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#77216F] animate-bounce" />
+                      </span>
+                      <span className="font-mono text-xs">Mencari konteks & menyusun jawaban...</span>
+                    </div>
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        h1: ({ node, ...props }) => (
+                          <h1
+                            className="text-lg font-bold mt-2 mb-1 text-[var(--text-primary)]"
+                            {...props}
+                          />
+                        ),
+                        h2: ({ node, ...props }) => (
+                          <h2
+                            className="text-base font-bold mt-2 mb-1 text-[var(--text-primary)]"
+                            {...props}
+                          />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3
+                            className="text-sm font-bold mt-1.5 mb-1 text-[var(--text-primary)]"
+                            {...props}
+                          />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul className="list-disc list-inside my-0 space-y-0" {...props} />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol className="list-decimal list-inside my-0 space-y-0" {...props} />
+                        ),
+                        li: ({ node, ...props }) => (
+                          <li className="ml-1 leading-snug [&>p]:mb-0 [&>p]:inline" {...props} />
+                        ),
+                        strong: ({ node, ...props }) => (
+                          <strong className="font-bold text-[var(--text-primary)]" {...props} />
+                        ),
+                        a: ({ node, ...props }) => (
+                          <a
+                            className="text-[#E95420] hover:text-[#D44615] hover:underline font-medium"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            {...props}
+                          />
+                        ),
+                        code: ({ node, className, children, ...props }) => {
+                          const isBlock = Boolean(className);
+                          return isBlock ? (
+                            <code className={`font-mono text-xs ${className}`} {...props}>
+                              {children}
+                            </code>
+                          ) : (
+                            <code
+                              className="font-mono text-xs px-1.5 py-0.5 rounded-[6px] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[#E95420]"
+                              {...props}
+                            >
+                              {children}
+                            </code>
+                          );
+                        },
+                        pre: ({ node, ...props }) => (
+                          <pre
+                            className="font-mono text-xs p-3 my-2 rounded-[8px] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] overflow-x-auto"
+                            {...props}
+                          />
+                        ),
+                        blockquote: ({ node, ...props }) => (
+                          <blockquote
+                            className="my-2 pl-3 py-1.5 pr-3 rounded-r-[8px] border-l-[3px] border-[#77216F] text-[var(--text-secondary)]"
+                            style={{ background: 'var(--bg-quote)' }}
+                            {...props}
+                          />
+                        ),
+                        p: ({ node, ...props }) => (
+                          <p className="mb-2 last:mb-0 leading-snug" {...props} />
+                        ),
+                      }}
+                    >
+                      {message.content
+                        .replace(/\n{3,}/g, '\n\n')
+                        .replace(/\n+(?=[-•*] |\d+\.)/g, '\n')}
+                    </ReactMarkdown>
+                  )}
+                </div>
+
+                <p
+                  className={`font-mono text-[11px] mt-2 ${
+                    isUser ? 'text-white/80 text-right' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {new Date(message.timestamp).toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
       <div ref={messagesEndRef} />
     </div>

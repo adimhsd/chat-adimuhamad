@@ -237,10 +237,10 @@ curl -ILs https://chat.adi-muhamad.my.id | head -n 5
 cd /home/adi/chat-adimuhamad
 
 # Import file tunggal
-docker exec chatbot_app node ingest-postgres.js --file /app/Dokumentasi/artikel-baru.txt --source "Blog Post Baru"
+docker exec chatbot_app node ingest-postgres.js --file /app/docs/artikel-baru.txt --source "Blog Post Baru"
 
 # Import direktori
-docker exec chatbot_app node ingest-postgres.js --dir /app/Dokumentasi --source "Kumpulan Artikel"
+docker exec chatbot_app node ingest-postgres.js --dir /app/docs --source "Kumpulan Artikel"
 ```
 
 ### Memulihkan / Backup Database Chatbot

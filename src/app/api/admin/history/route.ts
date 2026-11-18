@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
-
-function isAuthenticated(req: NextRequest): boolean {
-  const session = req.cookies.get('admin_session')?.value;
-  if (!session) return false;
-  try {
-    const decoded = Buffer.from(session, 'base64').toString('utf-8');
-    return decoded.includes('admin@adi-muhamad.my.id');
-  } catch {
-    return false;
-  }
-}
+import { query } from '@/lib/postgres';
+import { isAdminAuthenticated } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
-  if (!isAuthenticated(req)) {
+  if (!isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

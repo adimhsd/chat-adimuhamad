@@ -1,7 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import Script from 'next/script';
 import { useRouter } from 'next/navigation';
+import { readSavedTheme, persistTheme, ThemeMode } from '@/lib/theme';
+
+interface TurnstileAPI {
+  render: (
+    container: HTMLElement,
+    options: {
+      sitekey: string;
+      theme?: 'light' | 'dark' | 'auto';
+      callback?: (token: string) => void;
+      'error-callback'?: () => void;
+      'expired-callback'?: () => void;
+    }
+  ) => string;
+  reset: (widgetId?: string) => void;
+  remove: (widgetId: string) => void;
+}
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileAPI;
+  }
+}
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -9,9 +35,78 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setTheme(readSavedTheme());
+    if (typeof window !== 'undefined' && window.turnstile) {
+      setTurnstileReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    persistTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !turnstileReady) return;
+    const container = turnstileContainerRef.current;
+    const api = window.turnstile;
+    if (!container || !api) return;
+
+    if (widgetIdRef.current) {
+      api.remove(widgetIdRef.current);
+      widgetIdRef.current = null;
+    }
+    setTurnstileToken('');
+
+    widgetIdRef.current = api.render(container, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme,
+      callback: (token: string) => {
+        setTurnstileToken(token);
+        setError('');
+      },
+      'error-callback': () => {
+        setTurnstileToken('');
+      },
+      'expired-callback': () => {
+        setTurnstileToken('');
+      },
+    });
+
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+        widgetIdRef.current = null;
+      }
+    };
+  }, [turnstileReady, theme]);
+
+  const resetTurnstile = () => {
+    if (typeof window !== 'undefined' && window.turnstile && widgetIdRef.current) {
+      window.turnstile.reset(widgetIdRef.current);
+    }
+    setTurnstileToken('');
+  };
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError('Silakan selesaikan verifikasi keamanan Turnstile terlebih dahulu.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -19,111 +114,187 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          turnstile_token: turnstileToken,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.error || 'Login gagal');
+        resetTurnstile();
       } else {
         router.push('/admin/dashboard');
       }
     } catch {
       setError('Terjadi kesalahan jaringan');
+      resetTurnstile();
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg shadow-blue-500/30 mb-4">
-            <i className="fas fa-robot text-2xl text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Sontoloyo AI</h1>
-          <p className="text-blue-300 text-sm mt-1">Admin Dashboard</p>
-        </div>
+    <div className="h-dvh overflow-y-auto yaru-scrollbar flex flex-col justify-between p-4 sm:p-6">
+      {TURNSTILE_SITE_KEY && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="afterInteractive"
+          onLoad={() => setTurnstileReady(true)}
+        />
+      )}
 
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-lg font-semibold text-white mb-6">Masuk sebagai Admin</h2>
+      {/* Top Bar */}
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-between gap-3">
+        <Link href="/" className="btn px-3 py-1.5 text-xs font-medium">
+          <i className="fas fa-arrow-left text-[#E95420]" />
+          <span>Kembali ke Chatbot</span>
+        </Link>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm text-blue-200 mb-2" htmlFor="email">
-                Email
-              </label>
-              <div className="relative">
-                <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@adi-muhamad.my.id"
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm text-blue-200 mb-2" htmlFor="password">
-                Password
-              </label>
-              <div className="relative">
-                <i className="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
-                <i className="fas fa-circle-exclamation text-red-400 text-sm" />
-                <p className="text-red-300 text-sm">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
-            >
-              {loading ? (
-                <>
-                  <i className="fas fa-spinner animate-spin" />
-                  <span>Memproses...</span>
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-right-to-bracket" />
-                  <span>Masuk</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          <p className="text-center text-slate-500 text-xs mt-6">
-            Akses khusus administrator
-          </p>
-        </div>
-
-        <p className="text-center text-slate-600 text-xs mt-4">
-          &copy; 2026 Sontoloyo AI · adi-muhamad.my.id
-        </p>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="theme-toggle px-3 py-1.5 text-xs font-medium"
+          title="Ganti Tema Terang/Gelap"
+          aria-label="Ganti Tema Terang/Gelap"
+        >
+          <span aria-hidden="true">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+        </button>
       </div>
+
+      {/* Center Login Card */}
+      <div className="w-full max-w-md mx-auto my-8">
+        <div className="text-center mb-6">
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-[12px] text-white mb-4"
+            style={{
+              background: 'linear-gradient(135deg, #E95420, #77216F)',
+              boxShadow: '0 8px 24px -6px rgba(233, 84, 32, 0.45)',
+            }}
+          >
+            <i className="fas fa-robot text-2xl" />
+          </div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Sontoloyo AI</h1>
+          <div className="mt-2">
+            <span className="badge-indigo text-xs px-2.5 py-0.5 font-medium">
+              Admin Console
+            </span>
+          </div>
+        </div>
+
+        <div className="yaru-card overflow-hidden">
+          <div
+            className="h-1 w-full"
+            style={{
+              background: 'linear-gradient(90deg, #E95420 0%, #77216F 65%, #2C001E 100%)',
+            }}
+          />
+          <div className="p-6 sm:p-8">
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">
+              Masuk sebagai Admin
+            </h2>
+            <p className="text-xs text-[var(--text-muted)] mt-1 mb-6">
+              Kelola riwayat percakapan &amp; analitik RAG ekosistem blog.
+            </p>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label
+                  className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2"
+                  htmlFor="email"
+                >
+                  Email
+                </label>
+                <div className="relative">
+                  <i className="fas fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-sm" />
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@adi-muhamad.my.id"
+                    required
+                    className="yaru-input w-full pl-10 pr-4 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2"
+                  htmlFor="password"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <i className="fas fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-sm" />
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="yaru-input w-full pl-10 pr-4 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              {TURNSTILE_SITE_KEY && (
+                <div className="pt-1 flex flex-col items-center">
+                  <div ref={turnstileContainerRef} className="min-h-[65px] flex items-center justify-center" />
+                </div>
+              )}
+
+              {error && (
+                <div className="badge-danger flex items-center gap-2.5 px-4 py-3 text-sm">
+                  <i className="fas fa-circle-exclamation shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
+                className="btn btn-primary w-full py-3 font-semibold text-sm mt-2"
+              >
+                {loading ? (
+                  <>
+                    <i className="fas fa-spinner animate-spin" />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-right-to-bracket" />
+                    <span>Masuk</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <p className="text-center font-mono text-xs text-[var(--text-muted)] mt-6">
+              Akses khusus administrator
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <p className="text-center font-mono text-xs text-[var(--text-muted)] pb-2">
+        &copy; 2026 Sontoloyo AI ·{' '}
+        <a
+          href="https://adi-muhamad.my.id"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#E95420] hover:underline"
+        >
+          adi-muhamad.my.id
+        </a>
+      </p>
     </div>
   );
 }

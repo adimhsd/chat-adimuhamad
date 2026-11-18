@@ -3,43 +3,80 @@
 interface NavbarProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onClearChat?: () => void;
+  hasMessages?: boolean;
+  isLoading?: boolean;
 }
 
-export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
+export default function Navbar({
+  theme,
+  onToggleTheme,
+  onClearChat,
+  hasMessages = false,
+  isLoading = false,
+}: NavbarProps) {
   return (
-    <nav className="fixed w-full top-0 left-0 z-50 border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
-      <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-2 rounded-lg text-white shadow-md">
-            <i className="fas fa-robot text-xl"></i>
+    <nav className="fixed w-full top-0 left-0 z-50">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-10 h-10 rounded-[8px] flex items-center justify-center text-white shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, #E95420, #77216F)',
+              boxShadow: '0 4px 12px -2px rgba(233, 84, 32, 0.4)',
+            }}
+          >
+            <i className="fas fa-robot text-lg"></i>
           </div>
-          <div>
-            <h1 className="font-bold text-lg leading-none text-gray-900 dark:text-white">
-              Sontoloyo AI
-            </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="font-bold text-base sm:text-lg leading-none text-[var(--text-primary)] truncate">
+                Sontoloyo AI
+              </h1>
+              <span className="persona-tag text-[10px] px-2 py-0.5 font-medium shrink-0">
+                RAG AI
+              </span>
+            </div>
+            <p className="font-mono text-xs text-[var(--text-muted)] mt-1 truncate">
               chat.adi-muhamad.my.id
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {hasMessages && onClearChat && (
+            <button
+              type="button"
+              onClick={onClearChat}
+              disabled={isLoading}
+              className="btn px-2.5 py-1.5 text-xs font-medium"
+              title="Mulai percakapan baru"
+              aria-label="Mulai percakapan baru"
+            >
+              <i className="fas fa-rotate-left text-[var(--text-muted)]" />
+              <span className="hidden md:inline">Reset</span>
+            </button>
+          )}
+
+          <div
+            className="status-pill px-2.5 py-1 text-xs font-medium"
+            title="API & Vector Database Aktif"
+          >
+            <span className="w-2 h-2 rounded-full bg-[var(--accent-emerald)] animate-pulse" />
+            <span className="hidden sm:inline">Live</span>
+          </div>
+
           <button
             type="button"
             onClick={onToggleTheme}
-            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 flex items-center justify-center"
-            title="Toggle theme"
-            aria-label="Toggle theme"
+            className="theme-toggle px-3 py-1.5 text-xs font-medium"
+            title="Ganti Tema Terang/Gelap"
+            aria-label="Ganti Tema Terang/Gelap"
           >
-            <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} sm:mr-1.5`} />
-            <span className="hidden sm:inline text-xs font-medium">{theme === 'dark' ? 'Light' : 'Dark'}</span>
-          </button>
-          <button
-            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300 flex items-center justify-center"
-            title="API Status"
-          >
-            <i className="fas fa-circle text-green-500 sm:mr-1.5" style={{ fontSize: '0.65rem' }}></i>
-            <span className="hidden sm:inline text-xs font-medium">Live</span>
+            <span aria-hidden="true">{theme === 'dark' ? '☀️' : '🌙'}</span>
+            <span className="hidden sm:inline">
+              {theme === 'dark' ? 'Light' : 'Dark'}
+            </span>
           </button>
         </div>
       </div>
