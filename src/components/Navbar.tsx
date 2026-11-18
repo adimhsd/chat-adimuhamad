@@ -6,6 +6,8 @@ interface NavbarProps {
   onClearChat?: () => void;
   hasMessages?: boolean;
   isLoading?: boolean;
+  canInstallPWA?: boolean;
+  onInstallPWA?: () => void;
 }
 
 export default function Navbar({
@@ -14,6 +16,8 @@ export default function Navbar({
   onClearChat,
   hasMessages = false,
   isLoading = false,
+  canInstallPWA = false,
+  onInstallPWA,
 }: NavbarProps) {
   return (
     <nav className="fixed w-full top-0 left-0 z-50">
@@ -39,6 +43,19 @@ export default function Navbar({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {canInstallPWA && onInstallPWA && (
+            <button
+              type="button"
+              onClick={onInstallPWA}
+              className="btn btn-primary px-2.5 py-1.5 text-xs font-medium"
+              title="Install aplikasi ke perangkat Anda"
+              aria-label="Install aplikasi"
+            >
+              <i className="fas fa-download" />
+              <span className="hidden sm:inline">Install</span>
+            </button>
+          )}
+
           {hasMessages && onClearChat && (
             <button
               type="button"

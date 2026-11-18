@@ -69,8 +69,7 @@ build/Release
 firebase-service-account.json
 .env
 
-# --- PWA (next-pwa generated files) ---
-public/sw.js
+# --- PWA (legacy workbox generated files) ---
 public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map

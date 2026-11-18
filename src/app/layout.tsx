@@ -39,6 +39,13 @@ const themeInitScript = `
       root.classList.remove('dark');
     }
   } catch (e) {}
+  try {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+      });
+    }
+  } catch (e) {}
 })();
 `;
 

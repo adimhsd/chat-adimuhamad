@@ -13,10 +13,17 @@ interface Message {
   timestamp: Date;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   useEffect(() => {
     setTheme(readSavedTheme());
@@ -25,6 +32,49 @@ export default function Home() {
   useEffect(() => {
     persistTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+      if (!window.sessionStorage.getItem('pwa_banner_dismissed')) {
+        setShowInstallBanner(true);
+      }
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+    }
+  };
+
+  const handleDismissInstallBanner = () => {
+    setShowInstallBanner(false);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('pwa_banner_dismissed', '1');
+    }
+  };
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === 'dark' ? 'light' : 'dark'));
@@ -123,11 +173,51 @@ export default function Home() {
         onClearChat={handleClearChat}
         hasMessages={messages.length > 0}
         isLoading={isLoading}
+        canInstallPWA={Boolean(installPrompt)}
+        onInstallPWA={handleInstallPWA}
       />
       <main
         className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-col overflow-hidden"
         style={{ paddingTop: '4.75rem' }}
       >
+        {showInstallBanner && installPrompt && (
+          <div className="mb-3 yaru-card px-3.5 py-2.5 flex items-center justify-between gap-3 border-[rgba(233,84,32,0.45)] animate-fadeIn shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className="w-8 h-8 rounded-[8px] flex items-center justify-center text-white shrink-0"
+                style={{ background: 'linear-gradient(135deg, #E95420, #77216F)' }}
+              >
+                <i className="fas fa-mobile-screen-button text-sm" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[var(--text-primary)] truncate">
+                  Install Sontoloyo AI
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)] truncate">
+                  Pasang sebagai aplikasi di perangkat Anda
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleInstallPWA}
+                className="btn btn-primary px-3 py-1.5 text-xs font-medium"
+              >
+                <i className="fas fa-download" />
+                <span>Install</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDismissInstallBanner}
+                aria-label="Tutup ajakan install"
+                className="btn w-7 h-7 text-xs text-[var(--text-muted)]"
+              >
+                <i className="fas fa-xmark" />
+              </button>
+            </div>
+          </div>
+        )}
         <ChatWindow
           messages={messages}
           isLoading={isLoading}
