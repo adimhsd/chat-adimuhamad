@@ -33,6 +33,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('dark');
@@ -234,13 +235,22 @@ export default function AdminLoginPage() {
                   <i className="fas fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-sm" />
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="yaru-input w-full pl-10 pr-4 py-2.5 text-sm"
+                    className="yaru-input w-full pl-10 pr-10 py-2.5 text-sm"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                    title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-[6px] text-[var(--text-muted)] hover:text-[#E95420] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-sm`} />
+                  </button>
                 </div>
               </div>
 
