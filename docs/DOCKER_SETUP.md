@@ -36,7 +36,7 @@
    ```
 
 2. **Cloudflare Tunnel** sudah setup
-   - Tunnel ID: `3fe6820f-8c27-490e-bcea-67da52227312`
+   - Tunnel ID: `<YOUR_TUNNEL_ID>`
    - Domain: `chat.adi-muhamad.my.id` (already tunneled)
 
 3. **OpenAI API Key** 
@@ -187,11 +187,11 @@ curl -L --output cloudflared.tgz https://github.com/cloudflare/cloudflared/relea
 tar -xzf cloudflared.tgz
 
 # Run tunnel
-./cloudflared tunnel run 3fe6820f-8c27-490e-bcea-67da52227312
+./cloudflared tunnel run <YOUR_TUNNEL_ID>
 
 # Or in background (requires auth token)
 ./cloudflared tunnel login
-./cloudflared tunnel run --credentials-file ~/.cloudflared/cert.pem 3fe6820f-8c27-490e-bcea-67da52227312
+./cloudflared tunnel run --credentials-file ~/.cloudflared/cert.pem <YOUR_TUNNEL_ID>
 ```
 
 ### Verify Access

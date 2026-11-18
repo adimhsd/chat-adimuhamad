@@ -22,7 +22,7 @@
 ### 4. Networking: Direct → Cloudflare Tunnel
 - Secure tunnel via Cloudflare (no port exposure)
 - Domain: `chat.adi-muhamad.my.id`
-- Tunnel ID: `3fe6820f-8c27-490e-bcea-67da52227312`
+- Tunnel ID: `<YOUR_TUNNEL_ID>`
 
 ---
 
@@ -36,11 +36,11 @@ docker-compose --version
 
 # 2. Verify OpenAI API key
 echo $OPENAI_API_KEY
-# Should show: sk-proj-zwN3ViSZacRMnryuC3Uc3woh5...
+# Should show: your_openai_api_key_here
 
 # 3. Verify Cloudflare Tunnel
 cloudflared tunnel list
-# Should show tunnel: 3fe6820f-8c27-490e-bcea-67da52227312 (chat)
+# Should show tunnel: <YOUR_TUNNEL_ID> (chat)
 ```
 
 ### Deploy
@@ -126,20 +126,21 @@ chatbot-bisnisdigital/
 
 ## 🔑 Key Configuration
 
-### `.env.local` (Already Filled)
+### `.env.local` (Template)
 ```env
 # OpenAI
-OPENAI_API_KEY=sk-proj-zwN3ViSZacRMnryuC3Uc3woh5u7s...
+OPENAI_API_KEY=your_openai_api_key_here
 NEXT_PUBLIC_OPENAI_MODEL=gpt-4o-mini
 
 # PostgreSQL (in Docker)
-POSTGRES_HOST=postgres
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5433
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=123
+POSTGRES_PASSWORD=your_postgres_password_here
 POSTGRES_DB=chatbot_db
 
 # Cloudflare Tunnel
-CLOUDFLARE_TUNNEL_ID=3fe6820f-8c27-490e-bcea-67da52227312
+CLOUDFLARE_TUNNEL_ID=<YOUR_TUNNEL_ID>
 NEXT_PUBLIC_SITE_URL=https://chat.adi-muhamad.my.id
 ```
 

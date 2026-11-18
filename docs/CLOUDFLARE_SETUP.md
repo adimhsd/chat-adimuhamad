@@ -5,7 +5,7 @@
 Cloudflare Tunnel membuat aplikasi Anda accessible dari internet tanpa perlu expose port langsung ke internet. Traffic dienkripsi dan diproxy melalui Cloudflare.
 
 **Status**: ✅ Tunnel sudah setup
-- **Tunnel ID**: `3fe6820f-8c27-490e-bcea-67da52227312`
+- **Tunnel ID**: `<YOUR_TUNNEL_ID>`
 - **Domain**: `chat.adi-muhamad.my.id`
 - **Public URL**: https://chat.adi-muhamad.my.id
 
@@ -65,7 +65,7 @@ cloudflared tunnel list
 Expected output:
 ```
 ID                                   NAME                 CNAME                 CREATED              CONNECTIONS
-3fe6820f-8c27-490e-bcea-67da52227312 chat                 chat.adi-muhamad.my.id 2025-01-15 10:30:00 Connected
+<YOUR_TUNNEL_ID>                     chat                 chat.adi-muhamad.my.id 2025-01-15 10:30:00 Connected
 ```
 
 **Create tunnel (if needed):**
@@ -86,7 +86,7 @@ cloudflared tunnel create chat
 4. Add/Update CNAME record:
    - **Type**: CNAME
    - **Name**: `chat`
-   - **Content**: `3fe6820f-8c27-490e-bcea-67da52227312.cfargotunnel.com`
+   - **Content**: `<YOUR_TUNNEL_ID>.cfargotunnel.com`
    - **Proxy status**: Proxied ✅
    - **TTL**: Auto
 
@@ -99,8 +99,8 @@ Save changes.
 Create file: `~/.cloudflared/config.yml`
 
 ```yaml
-tunnel: 3fe6820f-8c27-490e-bcea-67da52227312
-credentials-file: /home/adi/.cloudflared/3fe6820f-8c27-490e-bcea-67da52227312.json
+tunnel: <YOUR_TUNNEL_ID>
+credentials-file: /home/adi/.cloudflared/<YOUR_TUNNEL_ID>.json
 
 ingress:
   # Main application
@@ -286,7 +286,7 @@ sudo systemctl restart cloudflared
 crontab -e
 
 # Add line:
-@reboot /usr/local/bin/cloudflared tunnel run --credentials-file /home/adi/.cloudflared/3fe6820f-8c27-490e-bcea-67da52227312.json chat
+@reboot /usr/local/bin/cloudflared tunnel run --credentials-file /home/adi/.cloudflared/<YOUR_TUNNEL_ID>.json chat
 ```
 
 ### Option 3: Docker (in docker-compose.yml)
@@ -313,4 +313,4 @@ services:
 ---
 
 **Last Updated**: May 14, 2026  
-**Status**: ✅ Active (3fe6820f-8c27-490e-bcea-67da52227312)
+**Status**: ✅ Active (<YOUR_TUNNEL_ID>)

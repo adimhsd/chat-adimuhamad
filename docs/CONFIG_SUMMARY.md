@@ -9,26 +9,26 @@ Status: ✅ Ready for Deployment
 
 ### OpenAI API Key
 ```
-sk-proj-...[REDACTED]...
+your_openai_api_key_here
 ```
 - **Model**: gpt-4o-mini (cheapest, ~$0.15/$0.60 per 1M tokens)
 - **Embeddings**: text-embedding-3-small (~$0.02 per 1M tokens)
 
 ### PostgreSQL
 ```
-Host:     postgres (internal Docker network)
-Port:     5432
+Host:     localhost (atau postgres di internal Docker network)
+Port:     5433 (host) / 5432 (internal)
 User:     postgres
-Password: 123
+Password: your_postgres_password_here
 Database: chatbot_db
 ```
 
 ### Cloudflare Tunnel
 ```
-Tunnel ID:  3fe6820f-8c27-490e-bcea-67da52227312
+Tunnel ID:  <YOUR_TUNNEL_ID>
 Name:       chat
 Domain:     chat.adi-muhamad.my.id
-Status:     ✅ Already Configured
+Status:     ✅ Configured
 Public URL: https://chat.adi-muhamad.my.id
 ```
 

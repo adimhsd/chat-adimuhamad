@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 
-export const ADMIN_EMAIL = 'admin@adi-muhamad.my.id';
-export const ADMIN_PASSWORD = 'admin123';
-export const SESSION_SECRET = 'sontoloyo-admin-secret-2026';
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
+export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change_this_password';
+export const SESSION_SECRET =
+  process.env.ADMIN_SESSION_SECRET || 'change_this_session_secret';
 export const ADMIN_SESSION_COOKIE = 'admin_session';
 
 /**

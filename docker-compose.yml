@@ -3,18 +3,17 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: chatbot_postgres
+    env_file:
+      - .env.local
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-K9mP5vX2wQ9zL4tY6eW8aN3}
-      POSTGRES_DB: ${POSTGRES_DB:-chatbot_db}
       POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=vector"
     ports:
-      - "127.0.0.1:5433:5432"   # port 5432 mungkin dipakai cdl_postgres, pakai 5433 (dibatasi ke localhost)
+      - "127.0.0.1:5433:5432"   # port 5433 (dibatasi ke localhost) agar tidak bentrok dengan postgres lain
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backup_db_sontoloyo.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-chatbot_db}"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER:-postgres}\" -d \"$${POSTGRES_DB:-chatbot_db}\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,15 +32,11 @@ services:
     env_file:
       - .env.local
     environment:
-      PORT: 3001   # run on port 3001 to avoid conflict with CDL app on 3000
+      PORT: 3001   # run on port 3001 to avoid conflict with other services on 3000
 
       # PostgreSQL - Karena pakai network host, akses DB lewat localhost port 5433 yang di-expose DB
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-K9mP5vX2wQ9zL4tY6eW8aN3}@localhost:5433/${POSTGRES_DB:-chatbot_db}
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5433
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-K9mP5vX2wQ9zL4tY6eW8aN3}
-      POSTGRES_DB: ${POSTGRES_DB:-chatbot_db}
 
       # App Config
       NODE_ENV: ${NODE_ENV:-production}
