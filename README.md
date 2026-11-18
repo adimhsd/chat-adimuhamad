@@ -11,7 +11,7 @@
 - 🎨 **Ubuntu Yaru Design System** — Menggunakan palet *Warm Neutral Grey*, aksen **Ubuntu Orange (`#E95420`)**, **Canonical Aubergine (`#77216F`)**, font **Ubuntu & Ubuntu Mono**, serta toggle **Yaru Dark & Light Mode** yang tersinkron lintas subdomain
 - 💬 **Real-time Streaming Chat & Starter Prompts** — Respons streaming GPT-4o mini dengan kartu sambutan interaktif, markdown formatting, serta shortcut **`Enter`** untuk mengirim pesan dan **`Shift + Enter`** untuk baris baru
 - 🧠 **Web UI Import & Vector Embedding (`/admin/dashboard`)** — Tab **Knowledge Base (Vector DB)** di Admin Dashboard untuk menempel teks atau mengunggah file `.txt`/`.md`, mengatur *chunk size* & *overlap*, men-generate embedding langsung ke `pgvector`, serta menginspeksi/menghapus chunks
-- 🛡️ **Admin Console & Cloudflare Turnstile** — Halaman login (`/admin`) terproteksi bot via **Cloudflare Turnstile** + verifikasi server-side (`siteverify`), dilengkapi riwayat chat, pencarian, pagination, statistik token, dan export JSON
+- 🛡️ **Admin Console, Multi-Admin & Cloudflare Turnstile** — Halaman login (`/admin`) terproteksi bot via **Cloudflare Turnstile** + verifikasi server-side (`siteverify`), tombol tampil/sembunyikan password, serta dashboard (`/admin/dashboard`) dengan riwayat chat, export JSON, dan menu **Manajemen Admin** (tambah admin baru, ganti password hash `scrypt`, & hapus akun admin)
 - 🐳 **Docker Production Ready** — Multi-stage build Next.js pada port **`3001`** (`network_mode: host`) dan PostgreSQL 16 `pgvector` pada port **`127.0.0.1:5433`** dengan auto-recovery (`restart: unless-stopped`)
 
 ---
@@ -68,10 +68,11 @@ chat-adimuhamad/
 │   ├── app/
 │   │   ├── admin/
 │   │   │   ├── page.tsx                      # Login Admin + Cloudflare Turnstile
-│   │   │   └── dashboard/page.tsx            # Dashboard (Riwayat Chat & Knowledge Base Vector DB)
+│   │   │   └── dashboard/page.tsx            # Dashboard (Riwayat Chat, Vector DB & Manajemen Admin)
 │   │   ├── api/
 │   │   │   ├── admin/
-│   │   │   │   ├── login/route.ts            # Auth admin + verifikasi Turnstile server-side
+│   │   │   │   ├── login/route.ts            # Auth multi-admin + verifikasi Turnstile server-side
+│   │   │   │   ├── users/route.ts            # Manajemen Admin (Tambah admin, ganti password, hapus)
 │   │   │   │   ├── knowledge/route.ts        # CRUD & Embedding teks ke PostgreSQL pgvector
 │   │   │   │   ├── history/route.ts          # Query riwayat chat & pencarian
 │   │   │   │   └── export/route.ts           # Export riwayat chat ke JSON
@@ -85,7 +86,7 @@ chat-adimuhamad/
 │   │   ├── ChatWindow.tsx                    # Window percakapan, markdown & starter prompts
 │   │   └── Navbar.tsx                        # Navbar sticky glass, status pill & theme toggle
 │   └── lib/
-│       ├── auth.ts                           # Helper autentikasi sesi admin berbasis env
+│       ├── auth.ts                           # Helper autentikasi multi-admin (scrypt) & sesi cookie
 │       ├── postgres.ts                       # Pool & query PostgreSQL pgvector
 │       ├── rag.ts                            # Text chunking, embedding & similarity search
 │       └── theme.ts                          # Sinkronisasi tema Light/Dark lintas subdomain
@@ -191,7 +192,8 @@ docker exec chatbot_app node ingest-postgres.js \
 | :--- | :---: | :--- |
 | `/api/health` | `GET` | Status kesehatan API & koneksi PostgreSQL |
 | `/api/chat` | `POST` | Streaming chat RAG dengan retrieval Top-K dari `pgvector` |
-| `/api/admin/login` | `POST` / `DELETE` | Login admin (validasi Turnstile server-side + cookie `admin_session`) / Logout |
+| `/api/admin/login` | `POST` / `DELETE` | Login multi-admin (validasi Turnstile + verifikasi tabel `admin_users`) / Logout |
+| `/api/admin/users` | `GET` / `POST` / `PATCH` / `DELETE` | Daftar admin, tambah admin baru, ganti password/profil, & hapus akun admin |
 | `/api/admin/knowledge` | `GET` / `POST` / `DELETE` | Daftar sumber/chunks vektor, import & generate embedding, serta hapus dokumen |
 | `/api/admin/history` | `GET` | Mengambil riwayat chat dengan pagination & filter pencarian (`?page=1&limit=15&search=`) |
 | `/api/admin/export` | `GET` | Mengunduh seluruh riwayat chat dalam format JSON |

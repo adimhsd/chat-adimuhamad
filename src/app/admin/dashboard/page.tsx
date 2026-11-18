@@ -55,6 +55,14 @@ interface DocumentChunk {
   created_at: string;
 }
 
+interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
 function estimateChunkCount(text: string, chunkSize: number, overlap: number): number {
   const clean = text.trim();
   if (!clean) return 0;
@@ -67,7 +75,7 @@ function estimateChunkCount(text: string, chunkSize: number, overlap: number): n
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'history' | 'knowledge'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'knowledge' | 'admins'>('history');
   const [theme, setTheme] = useState<ThemeMode>('dark');
 
   // Chat history state
@@ -104,6 +112,34 @@ export default function AdminDashboard() {
   const [inspectSource, setInspectSource] = useState<string | null>(null);
   const [inspectChunks, setInspectChunks] = useState<DocumentChunk[]>([]);
   const [inspectLoading, setInspectLoading] = useState(false);
+
+  // Admin management state
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [currentAdminEmail, setCurrentAdminEmail] = useState('');
+  const [adminsLoading, setAdminsLoading] = useState(false);
+  const [adminFormMode, setAdminFormMode] = useState<'password' | 'create'>('password');
+
+  // Change password form state
+  const [targetAdminId, setTargetAdminId] = useState<number | ''>('');
+  const [editAdminName, setEditAdminName] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Add new admin form state
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
+
+  const [adminSubmitting, setAdminSubmitting] = useState(false);
+  const [adminFeedback, setAdminFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     setTheme(readSavedTheme());
@@ -165,11 +201,46 @@ export default function AdminDashboard() {
     fetchHistory();
   }, [fetchHistory]);
 
+  const fetchAdminUsers = useCallback(async () => {
+    setAdminsLoading(true);
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.status === 401) {
+        router.push('/admin');
+        return;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        const users: AdminUser[] = data.users || [];
+        const email: string = data.currentAdminEmail || '';
+        setAdminUsers(users);
+        setCurrentAdminEmail(email);
+
+        setTargetAdminId((prevId) => {
+          if (prevId && users.some((u) => u.id === prevId)) return prevId;
+          const selfUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+          const fallbackUser = selfUser || users[0];
+          if (fallbackUser) {
+            setEditAdminName(fallbackUser.name);
+            return fallbackUser.id;
+          }
+          return '';
+        });
+      }
+    } catch {
+      console.error('Failed to fetch admin users');
+    } finally {
+      setAdminsLoading(false);
+    }
+  }, [router]);
+
   useEffect(() => {
     if (activeTab === 'knowledge') {
       fetchKnowledge();
+    } else if (activeTab === 'admins') {
+      fetchAdminUsers();
     }
-  }, [activeTab, fetchKnowledge]);
+  }, [activeTab, fetchKnowledge, fetchAdminUsers]);
 
   const handleLogout = async () => {
     await fetch('/api/admin/login', { method: 'DELETE' });
@@ -344,6 +415,192 @@ export default function AdminDashboard() {
     }
   };
 
+  const selectAdminForPasswordChange = (user: AdminUser) => {
+    setAdminFormMode('password');
+    setTargetAdminId(user.id);
+    setEditAdminName(user.name);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setAdminFeedback(null);
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetAdminId) return;
+
+    if (newPassword && newPassword.length < 6) {
+      setAdminFeedback({
+        type: 'error',
+        message: 'Password baru minimal harus 6 karakter.',
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setAdminFeedback({
+        type: 'error',
+        message: 'Konfirmasi password baru tidak cocok.',
+      });
+      return;
+    }
+
+    setAdminSubmitting(true);
+    setAdminFeedback(null);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: targetAdminId,
+          name: editAdminName,
+          currentPassword: currentPassword || undefined,
+          newPassword: newPassword || undefined,
+        }),
+      });
+
+      if (res.status === 401) {
+        router.push('/admin');
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        setAdminFeedback({
+          type: 'error',
+          message: data.error || 'Gagal memperbarui password admin.',
+        });
+      } else {
+        setAdminFeedback({
+          type: 'success',
+          message: data.message || 'Data administrator berhasil diperbarui.',
+        });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        await fetchAdminUsers();
+      }
+    } catch {
+      setAdminFeedback({
+        type: 'error',
+        message: 'Terjadi kesalahan jaringan saat memperbarui admin.',
+      });
+    } finally {
+      setAdminSubmitting(false);
+    }
+  };
+
+  const handleCreateAdminSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newAdminName.trim() || !newAdminEmail.trim() || !newAdminPassword) {
+      setAdminFeedback({
+        type: 'error',
+        message: 'Nama, email, dan password awal wajib diisi.',
+      });
+      return;
+    }
+
+    if (newAdminPassword.length < 6) {
+      setAdminFeedback({
+        type: 'error',
+        message: 'Password minimal harus 6 karakter.',
+      });
+      return;
+    }
+
+    setAdminSubmitting(true);
+    setAdminFeedback(null);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newAdminName,
+          email: newAdminEmail,
+          password: newAdminPassword,
+        }),
+      });
+
+      if (res.status === 401) {
+        router.push('/admin');
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        setAdminFeedback({
+          type: 'error',
+          message: data.error || 'Gagal menambahkan admin baru.',
+        });
+      } else {
+        setAdminFeedback({
+          type: 'success',
+          message: data.message || 'Admin baru berhasil ditambahkan.',
+        });
+        setNewAdminName('');
+        setNewAdminEmail('');
+        setNewAdminPassword('');
+        await fetchAdminUsers();
+      }
+    } catch {
+      setAdminFeedback({
+        type: 'error',
+        message: 'Terjadi kesalahan jaringan saat menambahkan admin.',
+      });
+    } finally {
+      setAdminSubmitting(false);
+    }
+  };
+
+  const handleDeleteAdmin = async (user: AdminUser) => {
+    if (
+      !window.confirm(
+        `Hapus akun admin "${user.name}" (${user.email})? Tindakan ini tidak dapat dibatalkan.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users?id=${user.id}`, {
+        method: 'DELETE',
+      });
+      if (res.status === 401) {
+        router.push('/admin');
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        setAdminFeedback({
+          type: 'error',
+          message: data.error || 'Gagal menghapus akun admin.',
+        });
+      } else {
+        setAdminFeedback({
+          type: 'success',
+          message: data.message || 'Akun admin berhasil dihapus.',
+        });
+        if (targetAdminId === user.id) {
+          setTargetAdminId('');
+        }
+        await fetchAdminUsers();
+      }
+    } catch {
+      setAdminFeedback({
+        type: 'error',
+        message: 'Terjadi kesalahan jaringan saat menghapus admin.',
+      });
+    }
+  };
+
+  const selectedTargetAdmin = adminUsers.find((u) => u.id === targetAdminId) || null;
+  const isEditingSelf =
+    selectedTargetAdmin !== null &&
+    selectedTargetAdmin.email.toLowerCase() === currentAdminEmail.toLowerCase();
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('id-ID', {
       day: '2-digit',
@@ -454,6 +711,17 @@ export default function AdminDashboard() {
           >
             <i className="fas fa-database text-[#E95420]" />
             <span>Knowledge Base (Vector DB)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('admins')}
+            className={`tab-btn px-4 py-2 text-xs sm:text-sm font-medium flex items-center gap-2 cursor-pointer ${
+              activeTab === 'admins' ? 'active' : ''
+            }`}
+          >
+            <i className="fas fa-users-gear text-[#E95420]" />
+            <span>Manajemen Admin</span>
           </button>
         </div>
 
@@ -645,7 +913,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </>
-        ) : (
+        ) : activeTab === 'knowledge' ? (
           <>
             {/* Knowledge Base Stats */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -1028,6 +1296,506 @@ export default function AdminDashboard() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Admin Management Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+              <div className="yaru-card p-4">
+                <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1">
+                  Total Akun Admin
+                </p>
+                <p
+                  className="font-bold text-[#E95420]"
+                  style={{ fontSize: 'var(--fs-stat-val)' }}
+                >
+                  {adminUsers.length || '—'}
+                </p>
+              </div>
+
+              <div className="yaru-card p-4">
+                <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1">
+                  Akun Sedang Login
+                </p>
+                <p className="font-mono text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate mt-2">
+                  {currentAdminEmail || '—'}
+                </p>
+              </div>
+
+              <div
+                className="col-span-2 md:col-span-1 rounded-[12px] p-4 border border-[rgba(119,33,111,0.35)] shadow-[var(--shadow-card)]"
+                style={{ background: 'var(--bg-quote)' }}
+              >
+                <p className="font-mono text-xs uppercase tracking-wider text-[var(--badge-aubergine-text)] mb-2">
+                  Keamanan Autentikasi
+                </p>
+                <span className="status-pill px-3 py-1 text-xs font-medium">
+                  <span className="w-2 h-2 rounded-full bg-[var(--accent-emerald)]" />
+                  scrypt Hash · Turnstile
+                </span>
+              </div>
+            </div>
+
+            {/* 2-Column Layout: Form & Tabel Daftar Admin */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Form Ganti Password / Tambah Admin */}
+              <div className="lg:col-span-5 yaru-card overflow-hidden">
+                <div
+                  className="h-1 w-full"
+                  style={{
+                    background: 'linear-gradient(90deg, #E95420 0%, #77216F 65%, #2C001E 100%)',
+                  }}
+                />
+                <div className="p-5 sm:p-6">
+                  <div className="flex gap-2 mb-5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminFormMode('password');
+                        setAdminFeedback(null);
+                      }}
+                      className={`tab-btn flex-1 py-2 px-3 text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer ${
+                        adminFormMode === 'password' ? 'active' : ''
+                      }`}
+                    >
+                      <i className="fas fa-key text-[#E95420]" />
+                      <span>Ganti Password</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminFormMode('create');
+                        setAdminFeedback(null);
+                      }}
+                      className={`tab-btn flex-1 py-2 px-3 text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer ${
+                        adminFormMode === 'create' ? 'active' : ''
+                      }`}
+                    >
+                      <i className="fas fa-user-plus text-[#E95420]" />
+                      <span>Tambah Admin</span>
+                    </button>
+                  </div>
+
+                  {adminFormMode === 'password' ? (
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                      <div>
+                        <label
+                          htmlFor="target-admin"
+                          className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                        >
+                          Akun Target
+                        </label>
+                        <select
+                          id="target-admin"
+                          value={targetAdminId}
+                          onChange={(e) => {
+                            const nextId = Number(e.target.value);
+                            setTargetAdminId(nextId);
+                            const found = adminUsers.find((u) => u.id === nextId);
+                            if (found) setEditAdminName(found.name);
+                            setCurrentPassword('');
+                            setAdminFeedback(null);
+                          }}
+                          className="yaru-input w-full px-3.5 py-2 text-sm"
+                        >
+                          {adminUsers.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name} ({u.email})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="edit-admin-name"
+                          className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                        >
+                          Nama Admin
+                        </label>
+                        <input
+                          id="edit-admin-name"
+                          type="text"
+                          value={editAdminName}
+                          onChange={(e) => setEditAdminName(e.target.value)}
+                          placeholder="Nama administrator"
+                          required
+                          className="yaru-input w-full px-3.5 py-2 text-sm"
+                        />
+                      </div>
+
+                      {isEditingSelf && (
+                        <div>
+                          <label
+                            htmlFor="current-password"
+                            className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                          >
+                            Password Saat Ini
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="current-password"
+                              type={showCurrentPassword ? 'text' : 'password'}
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              placeholder="Kosongkan jika hanya ubah nama"
+                              className="yaru-input w-full pl-3.5 pr-10 py-2 text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword((p) => !p)}
+                              aria-label={
+                                showCurrentPassword
+                                  ? 'Sembunyikan password saat ini'
+                                  : 'Lihat password saat ini'
+                              }
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-[6px] text-[var(--text-muted)] hover:text-[#E95420] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                            >
+                              <i
+                                className={`fas ${
+                                  showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'
+                                } text-xs`}
+                              />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label
+                          htmlFor="new-password"
+                          className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                        >
+                          Password Baru
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="new-password"
+                            type={showNewPassword ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Minimal 6 karakter"
+                            className="yaru-input w-full pl-3.5 pr-10 py-2 text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword((p) => !p)}
+                            aria-label={
+                              showNewPassword
+                                ? 'Sembunyikan password baru'
+                                : 'Lihat password baru'
+                            }
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-[6px] text-[var(--text-muted)] hover:text-[#E95420] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                          >
+                            <i
+                              className={`fas ${
+                                showNewPassword ? 'fa-eye-slash' : 'fa-eye'
+                              } text-xs`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="confirm-new-password"
+                          className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                        >
+                          Konfirmasi Password Baru
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="confirm-new-password"
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                            placeholder="Ulangi password baru"
+                            className="yaru-input w-full pl-3.5 pr-10 py-2 text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword((p) => !p)}
+                            aria-label={
+                              showConfirmPassword
+                                ? 'Sembunyikan konfirmasi password'
+                                : 'Lihat konfirmasi password'
+                            }
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-[6px] text-[var(--text-muted)] hover:text-[#E95420] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                          >
+                            <i
+                              className={`fas ${
+                                showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'
+                              } text-xs`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      {adminFeedback && (
+                        <div
+                          className={`px-3.5 py-2.5 text-xs flex items-start gap-2 ${
+                            adminFeedback.type === 'success'
+                              ? 'badge-emerald'
+                              : 'badge-danger'
+                          }`}
+                        >
+                          <i
+                            className={`fas mt-0.5 shrink-0 ${
+                              adminFeedback.type === 'success'
+                                ? 'fa-circle-check'
+                                : 'fa-circle-exclamation'
+                            }`}
+                          />
+                          <span>{adminFeedback.message}</span>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={adminSubmitting || !targetAdminId}
+                        className="btn btn-primary w-full py-2.5 text-sm font-semibold"
+                      >
+                        {adminSubmitting ? (
+                          <>
+                            <i className="fas fa-spinner animate-spin" />
+                            <span>Menyimpan...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-shield-check" />
+                            <span>Simpan Perubahan</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleCreateAdminSubmit} className="space-y-4">
+                      <div>
+                        <label
+                          htmlFor="create-admin-name"
+                          className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                        >
+                          Nama Lengkap
+                        </label>
+                        <input
+                          id="create-admin-name"
+                          type="text"
+                          value={newAdminName}
+                          onChange={(e) => setNewAdminName(e.target.value)}
+                          placeholder="Contoh: Dosen Pengampu"
+                          required
+                          className="yaru-input w-full px-3.5 py-2 text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="create-admin-email"
+                          className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                        >
+                          Email Admin
+                        </label>
+                        <input
+                          id="create-admin-email"
+                          type="email"
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                          placeholder="nama@adi-muhamad.my.id"
+                          required
+                          className="yaru-input w-full px-3.5 py-2 text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="create-admin-password"
+                          className="block font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                        >
+                          Password Awal
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="create-admin-password"
+                            type={showNewAdminPassword ? 'text' : 'password'}
+                            value={newAdminPassword}
+                            onChange={(e) => setNewAdminPassword(e.target.value)}
+                            placeholder="Minimal 6 karakter"
+                            required
+                            className="yaru-input w-full pl-3.5 pr-10 py-2 text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewAdminPassword((p) => !p)}
+                            aria-label={
+                              showNewAdminPassword
+                                ? 'Sembunyikan password awal'
+                                : 'Lihat password awal'
+                            }
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-[6px] text-[var(--text-muted)] hover:text-[#E95420] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                          >
+                            <i
+                              className={`fas ${
+                                showNewAdminPassword ? 'fa-eye-slash' : 'fa-eye'
+                              } text-xs`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      {adminFeedback && (
+                        <div
+                          className={`px-3.5 py-2.5 text-xs flex items-start gap-2 ${
+                            adminFeedback.type === 'success'
+                              ? 'badge-emerald'
+                              : 'badge-danger'
+                          }`}
+                        >
+                          <i
+                            className={`fas mt-0.5 shrink-0 ${
+                              adminFeedback.type === 'success'
+                                ? 'fa-circle-check'
+                                : 'fa-circle-exclamation'
+                            }`}
+                          />
+                          <span>{adminFeedback.message}</span>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={adminSubmitting}
+                        className="btn btn-primary w-full py-2.5 text-sm font-semibold"
+                      >
+                        {adminSubmitting ? (
+                          <>
+                            <i className="fas fa-spinner animate-spin" />
+                            <span>Menambahkan...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-user-plus" />
+                            <span>Tambahkan Admin Baru</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabel Daftar Administrator */}
+              <div className="lg:col-span-7 yaru-card overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-bold text-[var(--text-primary)]">
+                      Daftar Administrator
+                    </h2>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                      Kelola akses akun yang dapat masuk ke Admin Console.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchAdminUsers}
+                    disabled={adminsLoading}
+                    className="btn px-3 py-1.5 text-xs font-medium"
+                    title="Muat ulang daftar admin"
+                  >
+                    <i
+                      className={`fas fa-rotate ${
+                        adminsLoading ? 'animate-spin text-[#E95420]' : ''
+                      }`}
+                    />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
+                </div>
+
+                {adminsLoading && adminUsers.length === 0 ? (
+                  <div className="flex items-center justify-center h-44">
+                    <div className="text-center">
+                      <i className="fas fa-spinner animate-spin text-2xl text-[#E95420] mb-2" />
+                      <p className="font-mono text-xs text-[var(--text-muted)]">
+                        Memuat daftar administrator...
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto yaru-scrollbar">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+                          <th className="text-left px-4 py-3 font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
+                            Administrator
+                          </th>
+                          <th className="text-left px-4 py-3 font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold hidden md:table-cell">
+                            Diperbarui
+                          </th>
+                          <th className="text-right px-4 py-3 font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
+                            Aksi
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-subtle)]">
+                        {adminUsers.map((user) => {
+                          const isSelf =
+                            user.email.toLowerCase() === currentAdminEmail.toLowerCase();
+                          return (
+                            <tr
+                              key={user.id}
+                              className="hover:bg-[var(--bg-hover)] transition-colors"
+                            >
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-medium text-[var(--text-primary)] text-xs sm:text-sm">
+                                    {user.name}
+                                  </span>
+                                  {isSelf && (
+                                    <span className="badge-indigo text-[10px] px-2 py-0.5">
+                                      Akun Anda
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="font-mono text-xs text-[var(--text-muted)] mt-0.5">
+                                  {user.email}
+                                </p>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-xs text-[var(--text-muted)] hidden md:table-cell whitespace-nowrap">
+                                {formatDate(user.updated_at)}
+                              </td>
+                              <td className="px-4 py-3 text-right whitespace-nowrap">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => selectAdminForPasswordChange(user)}
+                                    className="btn px-2.5 py-1.5 text-xs"
+                                    title="Ubah password / profil admin ini"
+                                  >
+                                    <i className="fas fa-key text-[#E95420]" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteAdmin(user)}
+                                    disabled={isSelf || adminUsers.length <= 1}
+                                    className="btn px-2.5 py-1.5 text-xs text-[var(--accent-danger)]"
+                                    title={
+                                      isSelf
+                                        ? 'Tidak dapat menghapus akun yang sedang dipakai'
+                                        : 'Hapus akun admin'
+                                    }
+                                  >
+                                    <i className="fas fa-trash" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

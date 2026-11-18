@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  ADMIN_EMAIL,
-  ADMIN_PASSWORD,
   ADMIN_SESSION_COOKIE,
+  authenticateAdminCredentials,
   createAdminSessionToken,
 } from '@/lib/auth';
 
@@ -95,11 +94,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+    const authenticatedAdmin = await authenticateAdminCredentials(
+      typeof email === 'string' ? email : '',
+      typeof password === 'string' ? password : ''
+    );
+    if (!authenticatedAdmin) {
       return NextResponse.json({ error: 'Email atau password salah' }, { status: 401 });
     }
 
-    const sessionToken = createAdminSessionToken(email);
+    const sessionToken = createAdminSessionToken(authenticatedAdmin.email);
 
     const res = NextResponse.json({ success: true, message: 'Login berhasil' });
     res.cookies.set(ADMIN_SESSION_COOKIE, sessionToken, {
